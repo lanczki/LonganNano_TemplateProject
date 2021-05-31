@@ -1,7 +1,7 @@
 /*!
-    \file  main.c
-    \brief running led
-    
+    \file  systick.c
+    \brief the systick configuration file
+
     \version 2019-06-05, V1.0.0, firmware for GD32VF103
 */
 
@@ -33,47 +33,25 @@ OF SUCH DAMAGE.
 */
 
 #include "gd32vf103.h"
-/*#include "gd32vf103v_eval.h"*/
 #include "systick.h"
-#include <stdio.h>
 
 /*!
-    \brief      main function
-    \param[in]  none
+    \brief      delay a time in milliseconds
+    \param[in]  count: count in milliseconds
     \param[out] none
     \retval     none
 */
-int main(void)
+void delay_1ms(uint32_t count)
 {
-    /* enable the LED clock */
-    rcu_periph_clock_enable(RCU_GPIOC);
-    rcu_periph_clock_enable(RCU_GPIOE);
-    /* configure LED GPIO port */
-    gpio_init(GPIOC, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_0 | GPIO_PIN_2);
-    gpio_init(GPIOE, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_0 | GPIO_PIN_1);
+    uint64_t start_mtime, delta_mtime;
 
-    gpio_bit_reset(GPIOC, GPIO_PIN_0 | GPIO_PIN_2);
-    gpio_bit_reset(GPIOE, GPIO_PIN_0 | GPIO_PIN_1);
+    /* Don't start measuruing until we see an mtime tick */
+    uint64_t tmp = get_timer_value();
+    do {
+        start_mtime = get_timer_value();
+    } while (start_mtime == tmp);
 
-    while(1){
-        /* turn on LED1, turn off LED4 */
-        gpio_bit_set(GPIOC, GPIO_PIN_0);
-        gpio_bit_reset(GPIOE, GPIO_PIN_1);
-        delay_1ms(1000);
-
-        /* turn on LED2, turn off LED1 */
-        gpio_bit_set(GPIOC, GPIO_PIN_2);
-        gpio_bit_reset(GPIOC, GPIO_PIN_0);
-        delay_1ms(1000);
-
-        /* turn on LED3, turn off LED2 */
-        gpio_bit_set(GPIOE, GPIO_PIN_0);
-        gpio_bit_reset(GPIOC, GPIO_PIN_2);
-        delay_1ms(1000);
-
-        /* turn on LED4, turn off LED3 */
-        gpio_bit_set(GPIOE, GPIO_PIN_1);
-        gpio_bit_reset(GPIOE, GPIO_PIN_0);
-        delay_1ms(1000);
-    }
+    do {
+        delta_mtime = get_timer_value() - start_mtime;
+    }while(delta_mtime <(SystemCoreClock/4000.0 *count ));
 }
