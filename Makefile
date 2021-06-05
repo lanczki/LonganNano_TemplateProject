@@ -1,73 +1,70 @@
+# compiler and target program
+CXX = tools/xpack-riscv-none-embed-gcc-10.1.0-1.1/bin/riscv-none-embed-gcc.exe
+PROJECT = Template
 TARGET := GD32VF103V_EVAL
 
-GCC := .\tools\xpack-riscv-none-embed-gcc-10.1.0-1.1\bin\riscv-none-embed-gcc.exe
-#GCC_FLAGS := 
+# directories for .o and .d files
+OUTPUTDIR := output/
+OBJDIR := $(OUTPUTDIR)obj/
+DEPDIR := $(OUTPUTDIR)deps/
 
-OUTPUTDIR := .\output
+LINKER_SCRIPT := board/RISCV/env_Eclipse/GD32VF103xB.lds
 
-INCLUDEDIRS += -I.\board\GD32VF103_standard_peripheral
-INCLUDEDIRS += -I.\board\GD32VF103_standard_peripheral\Include
-INCLUDEDIRS += -I.\board\GD32VF103_usbfs_driver\Include
-INCLUDEDIRS += -I.\board\RISCV\drivers
-INCLUDEDIRS += -I.\include
+INCLUDEDIRS += -Iboard/GD32VF103_standard_peripheral
+INCLUDEDIRS += -Iboard/GD32VF103_standard_peripheral/Include
+INCLUDEDIRS += -Iboard/GD32VF103_usbfs_driver/Include
+INCLUDEDIRS += -Iboard/RISCV/drivers
+INCLUDEDIRS += -Iinclude
 
-PHERIPERIAL_DRIVER_SRC_FILES += $(wildcard ./board/GD32VF103_standard_peripheral/*.c)
-PHERIPERIAL_DRIVER_SRC_FILES += $(wildcard ./board/GD32VF103_standard_peripheral/Source/*.c)
+# all source, object, and dependency files
+PHERIPERIAL_DRIVER_SRC_FOLDER += board/GD32VF103_standard_peripheral/
+PHERIPERIAL_DRIVER_SRC_FOLDER += board/GD32VF103_standard_peripheral/Source/
 
-USBFS_DRIVER_SRC_FILES += $(wildcard ./board/GD32VF103_usbfs_driver/Source/*.c)
+USBFS_DRIVER_SRC_FOLDER += board/GD32VF103_usbfs_driver/Source/
 
-RISCV_SRC_FILES += $(wildcard ./board/RISCV/stubs/*.c)
-RISCV_SRC_FILES += $(wildcard ./board/RISCV/env_Eclipse/*.c)
-RISCV_SRC_FILES += $(wildcard ./board/RISCV/drivers/*.c)
+RISCV_SRC_FOLDER +=  board/RISCV/stubs/
+RISCV_SRC_FOLDER += board/RISCV/env_Eclipse/
+RISCV_SRC_FOLDER += board/RISCV/drivers/
 
-RISCV_SRC_ASSAMBLY += $(wildcard ./board/RISCV/env_Eclipse/*.S)
+SRCS_FOLDER += src/
 
-SRC_FILES += $(wildcard ./src/*.c)
+SRCS_FOLDERS += $(SRCS_FOLDER)
+SRCS_FOLDERS += $(PHERIPERIAL_DRIVER_SRC_FOLDER)
+#SRCS_FOLDERS += $(USBFS_DRIVER_SRC_FOLDER)
+SRCS_FOLDERS += $(RISCV_SRC_FOLDER)
 
-SRC_FILES += $(PHERIPERIAL_DRIVER_SRC_FILES)
-#SRC_FILES += $(USBFS_DRIVER_SRC_FILES)
-SRC_FILES += $(RISCV_SRC_FILES)
-SRC_FILES += $(RISCV_SRC_ASSAMBLY)
+SRCS := $(foreach FOLDER,$(SRCS_FOLDERS),$(wildcard $(FOLDER)*.c))
 
-OBJECTS += $(patsubst %.S,%.o,$(patsubst %.c,%.o,$(notdir $(SRC_FILES))))
-SRC := $(notdir $(SRC_FILES))
-.PHONY: init
+RISCV_SRC_ASSAMBLY += $(wildcard board/RISCV/env_Eclipse/*.S)
 
-all: init $(SRC) $(OBJECTS)
+OBJS += $(SRCS:%.c=$(OBJDIR)%.o)
+OBJS += $(RISCV_SRC_ASSAMBLY:%.S=$(OBJDIR)%.o)
 
-DEPENDENCIES = $(wildcard output/dep/*.d)
+DEPS += $(SRCS:%.c=$(DEPDIR)%.d)
+DEPS += $(RISCV_SRC_ASSAMBLY:%.S=$(DEPDIR)%.d)
+# root target for linking compiled .o files into one binary
+$(PROJECT) : $(OBJS)
+	$(CXX) $^ -T$(LINKER_SCRIPT) -Xlinker -Map=$(OUTPUTDIR)$(TARGET).map -o $(OUTPUTDIR)$@.elf
 
-DEPFLAGS := -MM -MF 
+# target to compile all .cpp files, generating .d files in the process
+$(OBJDIR)%.o : %.c $(DEPDIR)%.d | $(DEPDIR) $(OBJDIR)
+	$(CXX) -MMD -MT $@ -MP -MF $(DEPDIR)$*.d -o $@ -c $< $(INCLUDEDIRS) -D$(TARGET)
 
-%.c:
-	$(info asd)
-	$(info $@)
-	$(info $(OBJECTS))
-	$(GCC) -c $(filter %$@,$(SRC_FILES)) $(INCLUDEDIRS) -D$(TARGET) $(DEPFLAGS) $(OUTPUTDIR)\dep\$(@:.c=.d) 
+$(OBJDIR)%.o : %.S $(DEPDIR)%.d | $(DEPDIR) $(OBJDIR)
+	$(CXX) -MMD -MT $@ -MP -MF $(DEPDIR)$*.d -o $@ -c $< $(INCLUDEDIRS) -D$(TARGET)
 
-%.S:
-	$(info das)
-	$(info $@)
-	$(GCC) -c $(filter %$@,$(SRC_FILES)) $(INCLUDEDIRS) -D$(TARGET) $(DEPFLAGS) $(OUTPUTDIR)\dep\$(@:.S=.d) 
+# empty targets for handling missing .d files
+$(DEPS):
 
--include $(DEPENDENCIES)
+# target to create object and dependency directories if they don't exist
+$(DEPDIR):
+	@mkdir -p $(foreach FOLDER,$(SRCS_FOLDERS),$@$(FOLDER))
 
-%.o: %.c
-		$(info $(%^))
-#		$(info $@)
-#		$(GCC) -c -o $(OUTPUTDIR)\obj\$@ $^ -D$(TARGET) $(DEPFLAGS)
+$(OBJDIR):	
+	@mkdir -p $(foreach FOLDER,$(SRCS_FOLDERS),$(OBJDIR)$(FOLDER))
+# delete .d files, compiled .o files, and linked binary leaving just the code
+clean:
+	$(RM) -r $(OBJDIR) $(TARGET)
 
-%.o: %.S
-		$(info $(%^))
-
-
-init:
-		@mkdir -p $(OUTPUTDIR)\dep
-		@mkdir -p $(OUTPUTDIR)\obj
-
-#.PHONY: variables
-variables:
-		$(info $(OBJECTS))
-
-#-include $(DEPENDENCIES)
-#call %gcc% -c -D GD32VF103V_EVAL -Iinclude -I.\board\GD32VF103_standard_peripheral -I.\board\GD32VF103_standard_peripheral\Include -I.\board\RISCV\drivers .\src\main.c -MMD -MF main.d 
+# include all the dependency files
+include $(wildcard $(DEPS))

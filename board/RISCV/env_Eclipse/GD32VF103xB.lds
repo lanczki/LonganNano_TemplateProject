@@ -1,6 +1,6 @@
 OUTPUT_ARCH( "riscv" )
 
-ENTRY( _start )
+ENTRY( _start_longan )
 
 MEMORY
 { 

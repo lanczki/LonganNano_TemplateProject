@@ -159,14 +159,14 @@ vector_base:
 	.word     CAN1_EWMC_IRQHandler
 	.word     USBFS_IRQHandler
 
-	.globl _start
-	.type _start,@function
+	.globl _start_longan
+	.type _start_longan,@function
 
-_start:
+_start_longan:
 
 	csrc CSR_MSTATUS, MSTATUS_MIE
 	/* Jump to logical address first to ensure correct operation of RAM region  */
-    la		a0,	_start
+    la		a0,	_start_longan
     li		a1,	1
 	slli	a1,	a1, 29
     bleu	a1, a0, _start0800
