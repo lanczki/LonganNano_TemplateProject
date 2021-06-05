@@ -1,1 +1,4 @@
+*.gch
 output/*
+tools/xpack-riscv-none-embed-gcc-10.1.0-1.1/*
+tools/xpack-openocd-0.11.0-1/*
