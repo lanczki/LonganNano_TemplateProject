@@ -1,5 +1,7 @@
 # compiler and target program
 CXX = tools/xpack-riscv-none-embed-gcc-10.1.0-1.1/bin/riscv-none-embed-gcc.exe
+OBJCOPY = tools/xpack-riscv-none-embed-gcc-10.1.0-1.1/bin/riscv-none-embed-objcopy.exe
+
 PROJECT = Template
 TARGET := GD32VF103V_EVAL
 
@@ -44,7 +46,9 @@ DEPS += $(SRCS:%.c=$(DEPDIR)%.d)
 DEPS += $(RISCV_SRC_ASSAMBLY:%.S=$(DEPDIR)%.d)
 # root target for linking compiled .o files into one binary
 $(PROJECT) : $(OBJS)
-	$(CXX) $^ -T$(LINKER_SCRIPT) -Xlinker -Map=$(OUTPUTDIR)$(TARGET).map -o $(OUTPUTDIR)$@.elf
+	$(CXX) $^ -T$(LINKER_SCRIPT) -Xlinker -Map=$(OUTPUTDIR)$(PROJECT).map -o $(OUTPUTDIR)$@.elf
+	$(OBJCOPY) -O ihex $(OUTPUTDIR)$(PROJECT).elf $(OUTPUTDIR)$(PROJECT).hex
+
 
 # target to compile all .cpp files, generating .d files in the process
 $(OBJDIR)%.o : %.c $(DEPDIR)%.d | $(DEPDIR) $(OBJDIR)
