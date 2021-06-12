@@ -4,7 +4,7 @@ OBJCOPY := tools/xpack-riscv-none-embed-gcc-10.1.0-1.1/bin/riscv-none-embed-objc
 GDB := tools/xpack-riscv-none-embed-gcc-10.1.0-1.1/bin/riscv-none-embed-gdb.exe
 OPENOCD := tools/Nuclei/openocd/bin/openocd.exe
 
-CD := $(abspath $(lastword $(MAKEFILE_LIST)))
+CD := $(shell cygpath -w $(shell pwd))
 
 PROJECT := Template
 TARGET := GD32VF103V_EVAL
@@ -49,19 +49,19 @@ OBJS += $(RISCV_SRC_ASSAMBLY:%.S=$(OBJDIR)%.o)
 DEPS += $(SRCS:%.c=$(DEPDIR)%.d)
 DEPS += $(RISCV_SRC_ASSAMBLY:%.S=$(DEPDIR)%.d)
 # root target for linking compiled .o files into one binary
-$(PROJECT) : $(OBJS)
-	$(CXX) $^ -T$(LINKER_SCRIPT) -nostartfiles -Xlinker -Map=$(OUTPUTDIR)$(PROJECT).map -o $(OUTPUTDIR)$@.elf
+$(OUTPUTDIR)$(PROJECT).elf : $(OBJS)
+	$(CXX) $^ -T$(LINKER_SCRIPT) -g -nostartfiles -Xlinker -Map=$(OUTPUTDIR)$(PROJECT).map -o $@
 	@echo
-	$(OBJCOPY) -O ihex $(OUTPUTDIR)$(PROJECT).elf $(OUTPUTDIR)$(PROJECT).hex
+	$(OBJCOPY) -O ihex $@ $(OUTPUTDIR)$(PROJECT).hex
 
 
 # target to compile all .cpp files, generating .d files in the process
 $(OBJDIR)%.o : %.c $(DEPDIR)%.d | $(DEPDIR) $(OBJDIR)
-	$(CXX) -MMD -MT $@ -MP -MF $(DEPDIR)$*.d -o $@ -c $< $(INCLUDEDIRS) -D$(TARGET)
+	$(CXX) -MMD -MT $@ -g -MP -MF $(DEPDIR)$*.d -o $@ -c $< $(INCLUDEDIRS) -D$(TARGET)
 	@echo
 
 $(OBJDIR)%.o : %.S $(DEPDIR)%.d | $(DEPDIR) $(OBJDIR)
-	$(CXX) -MMD -MT $@ -MP -MF $(DEPDIR)$*.d -o $@ -c $< $(INCLUDEDIRS) -D$(TARGET)
+	$(CXX) -MMD -MT $@ -g -MP -MF $(DEPDIR)$*.d -o $@ -c $< $(INCLUDEDIRS) -D$(TARGET)
 	@echo
 
 # empty targets for handling missing .d files
@@ -77,13 +77,11 @@ $(OBJDIR):
 clean:
 	$(RM) -r $(OBJDIR) $(TARGET)
 
-debug: $(PROJECT)
-	@echo "Start Debug"
-	@cmd /c start "" "$(OPENOCD) -f $(CD)\tools\ft232h_jtag.cfg" 
-	@cmd /c start "" "$(GDB) -ex "target remote localhost:3333"" 
+debug: $(OUTPUTDIR)$(PROJECT).elf
+	@echo "Start OpenOCD"
+	$(OPENOCD) -f $(CD)\tools\ft232h_jtag.cfg
+	
 
-cd:
-	@echo $(CD)
 
 # include all the dependency files
 include $(wildcard $(DEPS))
