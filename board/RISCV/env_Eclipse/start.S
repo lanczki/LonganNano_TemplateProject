@@ -70,7 +70,7 @@
     .weak  USBFS_IRQHandler
 
 vector_base:
-    j _start
+    j _start_longan
     .align    2
     .word     0
     .word     0
