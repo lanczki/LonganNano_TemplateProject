@@ -1,8 +1,12 @@
 # compiler and target program
-CXX = tools/xpack-riscv-none-embed-gcc-10.1.0-1.1/bin/riscv-none-embed-gcc.exe
-OBJCOPY = tools/xpack-riscv-none-embed-gcc-10.1.0-1.1/bin/riscv-none-embed-objcopy.exe
+CXX := tools/xpack-riscv-none-embed-gcc-10.1.0-1.1/bin/riscv-none-embed-gcc.exe
+OBJCOPY := tools/xpack-riscv-none-embed-gcc-10.1.0-1.1/bin/riscv-none-embed-objcopy.exe
+GDB := tools/xpack-riscv-none-embed-gcc-10.1.0-1.1/bin/riscv-none-embed-gdb.exe
+OPENOCD := tools/Nuclei/openocd/bin/openocd.exe
 
-PROJECT = Template
+CD := $(shell cygpath -w $(shell pwd))
+
+PROJECT := Template
 TARGET := GD32VF103V_EVAL
 
 # directories for .o and .d files
@@ -45,17 +49,20 @@ OBJS += $(RISCV_SRC_ASSAMBLY:%.S=$(OBJDIR)%.o)
 DEPS += $(SRCS:%.c=$(DEPDIR)%.d)
 DEPS += $(RISCV_SRC_ASSAMBLY:%.S=$(DEPDIR)%.d)
 # root target for linking compiled .o files into one binary
-$(PROJECT) : $(OBJS)
-	$(CXX) $^ -T$(LINKER_SCRIPT) -Xlinker -Map=$(OUTPUTDIR)$(PROJECT).map -o $(OUTPUTDIR)$@.elf
-	$(OBJCOPY) -O ihex $(OUTPUTDIR)$(PROJECT).elf $(OUTPUTDIR)$(PROJECT).hex
+$(OUTPUTDIR)$(PROJECT).elf : $(OBJS)
+	$(CXX) $^ -T$(LINKER_SCRIPT) -g -nostartfiles -Xlinker -Map=$(OUTPUTDIR)$(PROJECT).map -o $@
+	@echo
+	$(OBJCOPY) -O ihex $@ $(OUTPUTDIR)$(PROJECT).hex
 
 
 # target to compile all .cpp files, generating .d files in the process
 $(OBJDIR)%.o : %.c $(DEPDIR)%.d | $(DEPDIR) $(OBJDIR)
-	$(CXX) -MMD -MT $@ -MP -MF $(DEPDIR)$*.d -o $@ -c $< $(INCLUDEDIRS) -D$(TARGET)
+	$(CXX) -MMD -MT $@ -g -MP -MF $(DEPDIR)$*.d -o $@ -c $< $(INCLUDEDIRS) -D$(TARGET)
+	@echo
 
 $(OBJDIR)%.o : %.S $(DEPDIR)%.d | $(DEPDIR) $(OBJDIR)
-	$(CXX) -MMD -MT $@ -MP -MF $(DEPDIR)$*.d -o $@ -c $< $(INCLUDEDIRS) -D$(TARGET)
+	$(CXX) -MMD -MT $@ -g -MP -MF $(DEPDIR)$*.d -o $@ -c $< $(INCLUDEDIRS) -D$(TARGET)
+	@echo
 
 # empty targets for handling missing .d files
 $(DEPS):
@@ -69,6 +76,12 @@ $(OBJDIR):
 # delete .d files, compiled .o files, and linked binary leaving just the code
 clean:
 	$(RM) -r $(OBJDIR) $(TARGET)
+
+debug: $(OUTPUTDIR)$(PROJECT).elf
+	@echo "Start OpenOCD"
+	$(OPENOCD) -f $(CD)\tools\ft232h_jtag.cfg
+	
+
 
 # include all the dependency files
 include $(wildcard $(DEPS))

@@ -1,0 +1,44 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build Project",
+            "command": "make",
+            "type": "shell",
+            "args": [],
+            "problemMatcher": [
+                "$tsc"
+            ],
+            "presentation": {
+                "reveal": "always"
+            },
+            "group": "build"
+        },
+        {
+            "label": "Start OpenOCD",
+            "command": "start make debug",
+            "type": "shell",
+            "args": [],
+            "problemMatcher": [
+                "$tsc"
+            ],
+            "presentation": {
+                "reveal": "always"
+            },
+            "group": "build"
+        },
+        {
+            "label": "Stop OpenOCD",
+            "command": "taskkill /IM \"openocd.exe\" /F",
+            "type": "shell",
+            "args": [],
+            "problemMatcher": [
+                "$tsc"
+            ],
+            "presentation": {
+                "reveal": "always"
+            },
+            "group": "build"
+        }
+    ]
+}
