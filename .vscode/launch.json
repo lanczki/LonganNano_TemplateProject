@@ -12,7 +12,7 @@
             "target": "localhost:3333",
             "remote": true,
             "cwd": "${workspaceRoot}",
-            "preLaunchTask": "Start OpenOCD" ,
+            "preLaunchTask": "Start OpenOCD",
             "postDebugTask": "Stop OpenOCD",
             "gdbpath": "tools\\xpack-riscv-none-embed-gcc-10.1.0-1.1\\bin\\riscv-none-embed-gdb.exe",
             "autorun": [
